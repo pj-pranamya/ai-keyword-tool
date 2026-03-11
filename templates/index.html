@@ -2,944 +2,113 @@
 <html lang="en">
 
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <title>AI Keyword Discovery Prototype</title>
-  <meta name="description" content="AI-powered Boolean keyword discovery for academic research.">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --bg: #f0f2f5;
-      --white: #fff;
-      --cb: #e0e4ec;
-      --text: #1a1d23;
-      --muted: #6b7280;
-      --lt: #9ca3af;
-      --pr: #2563eb;
-      --pr-lt: #eff6ff;
-      --pr-md: #bfdbfe;
-      --pr-dk: #1d4ed8;
-      --chip: #3b82f6;
-      --or-b: #e0e7ff;
-      --or-t: #4338ca;
-      --no-bg: #fef2f2;
-      --no-bd: #fecaca;
-      --no-t: #dc2626;
-      --ok: #059669;
-      --sh: 0 1px 3px rgba(0, 0, 0, .08), 0 1px 2px rgba(0, 0, 0, .05);
-      --sh2: 0 4px 12px rgba(0, 0, 0, .08);
-      --r: 6px;
-      --r2: 10px;
-      --r3: 14px;
-      --tr: .17s cubic-bezier(.4, 0, .2, 1)
-    }
-
-    *,
-    *::before,
-    *::after {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0
-    }
-
-    body {
-      font-family: 'Inter', system-ui, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      font-size: 14px;
-      line-height: 1.5
-    }
-
-    ::-webkit-scrollbar {
-      width: 5px
-    }
-
-    ::-webkit-scrollbar-track {
-      background: transparent
-    }
-
-    ::-webkit-scrollbar-thumb {
-      background: #d1d5db;
-      border-radius: 99px
-    }
-
-    ::-webkit-scrollbar-thumb:hover {
-      background: #9ca3af
-    }
-
-    .top {
-      background: var(--white);
-      border-bottom: 1px solid var(--cb);
-      padding: 36px 24px 28px;
-      text-align: center
-    }
-
-    h1 {
-      font-size: 26px;
-      font-weight: 700;
-      letter-spacing: -.4px;
-      margin-bottom: 6px
-    }
-
-    .sub {
-      font-size: 14px;
-      color: var(--muted);
-      margin-bottom: 20px
-    }
-
-    .inp-wrap {
-      max-width: 700px;
-      margin: 0 auto 16px
-    }
-
-    textarea#topicInput {
-      width: 100%;
-      min-height: 90px;
-      border: 1.5px solid var(--cb);
-      border-radius: var(--r2);
-      padding: 12px 14px;
-      font-family: inherit;
-      font-size: 13.5px;
-      color: var(--text);
-      background: var(--white);
-      resize: vertical;
-      transition: border-color var(--tr), box-shadow var(--tr);
-      line-height: 1.6
-    }
-
-    textarea#topicInput:focus {
-      outline: none;
-      border-color: var(--pr);
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, .1)
-    }
-
-    textarea#topicInput::placeholder {
-      color: var(--lt)
-    }
-
-    .top-btns {
-      display: flex;
-      gap: 10px;
-      justify-content: center
-    }
-
-    .btn {
-      border: none;
-      border-radius: var(--r);
-      padding: 10px 22px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      font-family: inherit;
-      display: inline-flex;
-      align-items: center;
-      gap: 7px;
-      transition: all var(--tr)
-    }
-
-    .btn.pr {
-      background: var(--pr);
-      color: #fff;
-      box-shadow: 0 2px 8px rgba(37, 99, 235, .3)
-    }
-
-    .btn.pr:hover {
-      background: var(--pr-dk);
-      box-shadow: 0 4px 16px rgba(37, 99, 235, .35);
-      transform: translateY(-1px)
-    }
-
-    .btn.pr:disabled {
-      opacity: .65;
-      cursor: not-allowed;
-      transform: none
-    }
-
-    .btn.gh {
-      background: transparent;
-      color: var(--muted);
-      border: 1.5px solid var(--cb)
-    }
-
-    .btn.gh:hover {
-      border-color: var(--pr);
-      color: var(--pr);
-      background: var(--pr-lt)
-    }
-
-    .layout {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
-      padding: 20px;
-      max-width: 1280px;
-      margin: 0 auto
-    }
-
-    .card {
-      background: var(--white);
-      border: 1px solid var(--cb);
-      border-radius: var(--r3);
-      padding: 22px 20px;
-      box-shadow: var(--sh)
-    }
-
-    .card-title {
-      font-size: 17px;
-      font-weight: 700;
-      margin-bottom: 18px
-    }
-
-    .and-div {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin: 10px 0;
-      color: var(--muted);
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: .06em
-    }
-
-    .and-div::before,
-    .and-div::after {
-      content: '';
-      flex: 1;
-      height: 1px;
-      background: var(--cb)
-    }
-
-    .or-group {
-      border: 1.5px solid var(--cb);
-      border-radius: var(--r2);
-      overflow: hidden;
-      background: #fafbfd;
-      transition: border-color var(--tr), box-shadow var(--tr)
-    }
-
-    .or-group.drag-over {
-      border-color: var(--pr);
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, .12);
-      background: var(--pr-lt)
-    }
-
-    .or-group-hd {
-      display: flex;
-      align-items: center;
-      padding: 9px 12px;
-      gap: 8px;
-      cursor: pointer;
-      user-select: none;
-      border-bottom: 1px solid var(--cb);
-      background: #f8f9fc;
-      transition: background var(--tr)
-    }
-
-    .or-group-hd:hover {
-      background: #f1f4fb
-    }
-
-    .g-arrow {
-      font-size: 10px;
-      color: var(--muted);
-      transition: transform var(--tr);
-      width: 14px;
-      text-align: center;
-      flex-shrink: 0
-    }
-
-    .or-group.collapsed .g-arrow {
-      transform: rotate(-90deg)
-    }
-
-    .g-label {
-      font-weight: 600;
-      font-size: 13px;
-      color: var(--or-t);
-      flex: 1
-    }
-
-    .g-count {
-      background: var(--or-b);
-      color: var(--or-t);
-      font-size: 10.5px;
-      font-weight: 700;
-      border-radius: 99px;
-      padding: 2px 9px
-    }
-
-    .g-del {
-      background: none;
-      border: none;
-      cursor: pointer;
-      color: var(--lt);
-      font-size: 14px;
-      padding: 2px 4px;
-      border-radius: 4px;
-      transition: color var(--tr), background var(--tr)
-    }
-
-    .g-del:hover {
-      color: var(--no-t);
-      background: var(--no-bg)
-    }
-
-    .or-group-bd {
-      padding: 10px 12px;
-      max-height: 500px;
-      overflow: hidden;
-      transition: max-height .28s cubic-bezier(.4, 0, .2, 1), padding .2s, opacity .2s
-    }
-
-    .or-group.collapsed .or-group-bd {
-      max-height: 0;
-      padding-top: 0;
-      padding-bottom: 0;
-      opacity: 0
-    }
-
-    .chips-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      min-height: 30px;
-      margin-bottom: 8px;
-      border-radius: var(--r);
-      padding: 4px;
-      transition: background var(--tr)
-    }
-
-    .chips-row.drop-t {
-      background: var(--pr-lt);
-      border: 1.5px dashed var(--pr-md)
-    }
-
-    .chip-wrap {
-      position: relative;
-      display: inline-flex
-    }
-
-    .chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      background: var(--chip);
-      color: #fff;
-      border-radius: 99px;
-      padding: 4px 10px 4px 12px;
-      font-size: 12.5px;
-      font-weight: 500;
-      cursor: grab;
-      user-select: none;
-      transition: background var(--tr), transform var(--tr), opacity var(--tr), box-shadow var(--tr);
-      border: none
-    }
-
-    .chip:hover {
-      background: var(--pr-dk);
-      box-shadow: 0 3px 10px rgba(37, 99, 235, .3);
-      transform: translateY(-1px)
-    }
-
-    .chip:active {
-      cursor: grabbing;
-      transform: scale(.97)
-    }
-
-    .chip.dragging {
-      opacity: .35;
-      transform: scale(.95)
-    }
-
-    .chip-x {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 15px;
-      height: 15px;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, .22);
-      border: none;
-      cursor: pointer;
-      color: #fff;
-      font-size: 10px;
-      padding: 0;
-      transition: background var(--tr), transform var(--tr);
-      flex-shrink: 0
-    }
-
-    .chip-x:hover {
-      background: rgba(255, 255, 255, .4);
-      transform: scale(1.2)
-    }
-
-    @keyframes chipOut {
-      0% {
-        opacity: 1;
-        transform: scale(1);
-        max-width: 220px
-      }
-
-      60% {
-        opacity: 0;
-        transform: scale(.75)
-      }
-
-      100% {
-        opacity: 0;
-        max-width: 0;
-        padding: 0;
-        margin: 0
-      }
-    }
-
-    .chip.removing {
-      animation: chipOut .32s cubic-bezier(.4, 0, .2, 1) forwards;
-      pointer-events: none;
-      overflow: hidden
-    }
-
-    .tt-box {
-      position: absolute;
-      top: calc(100% + 7px);
-      left: 50%;
-      transform: translateX(-50%) translateY(-5px);
-      background: #1e293b;
-      color: #e2e8f0;
-      border-radius: var(--r);
-      padding: 8px 12px;
-      font-size: 11.5px;
-      white-space: nowrap;
-      box-shadow: 0 6px 20px rgba(0, 0, 0, .2);
-      z-index: 300;
-      pointer-events: none;
-      opacity: 0;
-      transition: opacity .15s, transform .15s;
-      min-width: 130px;
-      text-align: center
-    }
-
-    .tt-box::after {
-      content: '';
-      position: absolute;
-      bottom: 100%;
-      left: 50%;
-      transform: translateX(-50%);
-      border: 5px solid transparent;
-      border-bottom-color: #1e293b
-    }
-
-    .tt-kw {
-      display: block;
-      font-weight: 600;
-      color: #93c5fd;
-      margin-bottom: 2px;
-      font-size: 12px
-    }
-
-    .tt-def {
-      color: #94a3b8;
-      font-style: italic;
-      font-size: 11px
-    }
-
-    .chip-wrap:hover .tt-box,
-    .kw-chip-wrap:hover .tt-box {
-      opacity: 1;
-      transform: translateX(-50%) translateY(0)
-    }
-
-    .chip-wrap,
-    .kw-chip-wrap {
-      overflow: visible
-    }
-
-    .term-input {
-      width: 100%;
-      padding: 7px 10px;
-      border: 1.5px solid var(--cb);
-      border-radius: var(--r);
-      font-family: inherit;
-      font-size: 13px;
-      color: var(--text);
-      background: var(--white);
-      transition: border-color var(--tr), box-shadow var(--tr)
-    }
-
-    .term-input:focus {
-      outline: none;
-      border-color: var(--pr);
-      box-shadow: 0 0 0 2px rgba(37, 99, 235, .1)
-    }
-
-    .term-input::placeholder {
-      color: var(--lt)
-    }
-
-    .add-row {
-      display: flex;
-      gap: 10px;
-      margin-top: 14px
-    }
-
-    .add-btn {
-      flex: 1;
-      padding: 9px 14px;
-      border-radius: var(--r);
-      border: 1.5px dashed var(--cb);
-      background: transparent;
-      color: var(--muted);
-      font-family: inherit;
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all var(--tr)
-    }
-
-    .add-btn:hover {
-      border-color: var(--pr);
-      color: var(--pr);
-      background: var(--pr-lt)
-    }
-
-    .not-sec {
-      margin-top: 18px;
-      padding-top: 14px;
-      border-top: 1px solid var(--cb)
-    }
-
-    .sec-lbl {
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: .07em;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 8px
-    }
-
-    .sec-lbl.red {
-      color: var(--no-t)
-    }
-
-    .not-row {
-      display: flex;
-      gap: 8px
-    }
-
-    .not-row input {
-      flex: 1;
-      padding: 7px 10px;
-      border: 1.5px solid var(--no-bd);
-      border-radius: var(--r);
-      font-family: inherit;
-      font-size: 13px;
-      background: var(--no-bg);
-      color: var(--no-t);
-      transition: border-color var(--tr)
-    }
-
-    .not-row input:focus {
-      outline: none;
-      border-color: var(--no-t)
-    }
-
-    .not-row input::placeholder {
-      color: #fca5a5
-    }
-
-    .not-add {
-      padding: 7px 14px;
-      border-radius: var(--r);
-      border: 1.5px solid var(--no-bd);
-      background: var(--no-bg);
-      color: var(--no-t);
-      font-family: inherit;
-      font-weight: 600;
-      font-size: 13px;
-      cursor: pointer;
-      transition: all var(--tr)
-    }
-
-    .not-add:hover {
-      background: #fee2e2
-    }
-
-    .not-chips {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-top: 8px
-    }
-
-    .not-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      background: var(--no-bg);
-      color: var(--no-t);
-      border: 1px solid var(--no-bd);
-      border-radius: 99px;
-      padding: 3px 10px 3px 12px;
-      font-size: 12px;
-      font-weight: 500
-    }
-
-    .not-chip-x {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      background: rgba(220, 38, 38, .12);
-      border: none;
-      cursor: pointer;
-      color: var(--no-t);
-      font-size: 9px;
-      padding: 0;
-      transition: background var(--tr)
-    }
-
-    .not-chip-x:hover {
-      background: rgba(220, 38, 38, .25)
-    }
-
-    .q-sec {
-      margin-top: 18px;
-      padding-top: 14px;
-      border-top: 1px solid var(--cb)
-    }
-
-    .q-box {
-      background: #f8f9fc;
-      border: 1.5px solid var(--cb);
-      border-radius: var(--r);
-      padding: 10px 12px;
-      font-family: 'Fira Mono', 'Consolas', monospace;
-      font-size: 12px;
-      color: #1e40af;
-      min-height: 54px;
-      word-break: break-word;
-      line-height: 1.6;
-      overflow: auto;
-      margin-top: 8px
-    }
-
-    .q-actions {
-      display: flex;
-      gap: 8px;
-      margin-top: 8px;
-      align-items: center
-    }
-
-    .copy-btn {
-      padding: 5px 12px;
-      border-radius: var(--r);
-      border: 1.5px solid var(--cb);
-      background: var(--white);
-      color: var(--muted);
-      font-family: inherit;
-      font-size: 12px;
-      cursor: pointer;
-      transition: all var(--tr)
-    }
-
-    .copy-btn:hover {
-      border-color: var(--pr);
-      color: var(--pr)
-    }
-
-    .kw-tree {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      margin-top: 4px;
-      overflow-y: auto;
-      max-height: 420px;
-      padding-right: 2px
-    }
-
-    .kw-tree-item {
-      border-radius: var(--r);
-      overflow: visible
-    }
-
-    .kw-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 4px 6px;
-      border-radius: var(--r);
-      transition: background var(--tr)
-    }
-
-    .kw-row:hover {
-      background: #f1f5fb
-    }
-
-    .kw-exp {
-      width: 20px;
-      height: 20px;
-      border: none;
-      background: none;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--lt);
-      font-size: 10px;
-      border-radius: 4px;
-      flex-shrink: 0;
-      transition: color var(--tr), background var(--tr), transform var(--tr)
-    }
-
-    .kw-exp:hover {
-      background: var(--pr-md);
-      color: var(--pr)
-    }
-
-    .kw-exp.open {
-      transform: rotate(90deg)
-    }
-
-    .kw-chip-wrap {
-      position: relative;
-      display: inline-flex
-    }
-
-    .kw-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: var(--chip);
-      color: #fff;
-      border-radius: 99px;
-      padding: 4px 13px;
-      font-size: 12.5px;
-      font-weight: 500;
-      cursor: pointer;
-      user-select: none;
-      border: none;
-      transition: background var(--tr), transform var(--tr), box-shadow var(--tr)
-    }
-
-    .kw-chip:hover {
-      background: var(--pr-dk);
-      transform: translateY(-1px);
-      box-shadow: 0 3px 10px rgba(37, 99, 235, .28)
-    }
-
-    .kw-chip .sc {
-      font-size: 10px;
-      opacity: .7;
-      font-weight: 400
-    }
-
-    .kw-kids {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 5px;
-      padding: 6px 8px 6px 32px;
-      background: var(--pr-lt);
-      border-radius: 0 0 var(--r) var(--r);
-      max-height: 0;
-      overflow: hidden;
-      transition: max-height .26s cubic-bezier(.4, 0, .2, 1), padding .2s, opacity .2s;
-      opacity: 0
-    }
-
-    .kw-kids.open {
-      max-height: 300px;
-      opacity: 1;
-      padding: 8px 8px 8px 34px
-    }
-
-    .kw-sub {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      background: #dbeafe;
-      color: var(--pr-dk);
-      border-radius: 99px;
-      padding: 3px 11px;
-      font-size: 12px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: background var(--tr), transform var(--tr);
-      position: relative
-    }
-
-    .kw-sub:hover {
-      background: var(--pr-md);
-      transform: translateY(-1px)
-    }
-
-    .filter-row {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 14px
-    }
-
-    .f-inp {
-      flex: 1;
-      padding: 8px 12px;
-      border: 1.5px solid var(--cb);
-      border-radius: var(--r);
-      font-family: inherit;
-      font-size: 13px;
-      background: var(--white);
-      color: var(--text);
-      transition: border-color var(--tr)
-    }
-
-    .f-inp:focus {
-      outline: none;
-      border-color: var(--pr)
-    }
-
-    .f-inp::placeholder {
-      color: var(--lt)
-    }
-
-    .clr-btn {
-      padding: 8px 12px;
-      border: 1.5px solid var(--cb);
-      border-radius: var(--r);
-      background: var(--white);
-      color: var(--muted);
-      font-family: inherit;
-      font-size: 12.5px;
-      cursor: pointer;
-      transition: all var(--tr)
-    }
-
-    .clr-btn:hover {
-      border-color: var(--pr);
-      color: var(--pr)
-    }
-
-    .empty {
-      text-align: center;
-      color: var(--muted);
-      font-size: 13px;
-      padding: 40px 20px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 10px
-    }
-
-    .empty-ic {
-      font-size: 34px;
-      opacity: .45
-    }
-
-    .so-sec {
-      margin-top: 18px;
-      padding-top: 14px;
-      border-top: 1px solid var(--cb)
-    }
-
-    .so-btns {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-top: 8px
-    }
-
-    .eng-btn {
-      flex: 1;
-      min-width: 130px;
-      padding: 9px 12px;
-      border: 1.5px solid var(--cb);
-      border-radius: var(--r);
-      background: var(--white);
-      color: var(--text);
-      font-family: inherit;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      transition: all var(--tr);
-      box-shadow: var(--sh)
-    }
-
-    .eng-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: var(--sh2)
-    }
-
-    .eng-btn.sc:hover {
-      border-color: #4285f4;
-      color: #1a56db;
-      background: #eff6ff
-    }
-
-    .eng-btn.pm:hover {
-      border-color: #0d9488;
-      color: #0f766e;
-      background: #f0fdfa
-    }
-
-    .eng-btn.ss:hover {
-      border-color: var(--pr);
-      color: var(--pr);
-      background: var(--pr-lt)
-    }
-
-    @keyframes spin {
-      to {
-        transform: rotate(360deg)
-      }
-    }
-
-    .spin {
-      display: inline-block;
-      width: 15px;
-      height: 15px;
-      border: 2px solid rgba(255, 255, 255, .35);
-      border-top-color: #fff;
-      border-radius: 50%;
-      animation: spin .65s linear infinite
-    }
-
-    #toasts {
-      position: fixed;
-      top: 18px;
-      right: 18px;
-      z-index: 1000;
-      display: flex;
-      flex-direction: column;
-      gap: 8px
-    }
-
-    .toast {
-      padding: 10px 16px;
-      border-radius: var(--r);
-      background: #1e293b;
-      color: #e2e8f0;
-      font-size: 13px;
-      font-weight: 500;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, .1);
-      animation: tIn .25s ease
-    }
-
-    @keyframes tIn {
-      from {
-        opacity: 0;
-        transform: translateX(20px)
-      }
-
-      to {
-        opacity: 1;
-        transform: translateX(0)
-      }
-    }
-  </style>
+    <title>AI Keyword Discovery Tool</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background:#f4f6f8;
+            padding:40px;
+        }
+
+        h1,p { text-align:center; }
+
+        textarea {
+            width:60%;
+            height:100px;
+            padding:10px;
+            font-size:16px;
+            display:block;
+            margin:0 auto;
+        }
+
+        button {
+            cursor:pointer;
+            border:none;
+        }
+
+        #generateBtn {
+            display:block;
+            margin:15px auto;
+            padding:8px 15px;
+            background:#2d89ef;
+            color:white;
+            border-radius:6px;
+        }
+
+        #mainContainer {
+            display:flex;
+            gap:30px;
+            margin-top:40px;
+        }
+
+        #leftPanel,#rightPanel {
+            flex:1;
+            background:white;
+            padding:20px;
+            border-radius:8px;
+            box-shadow:0 0 8px rgba(0,0,0,0.08);
+        }
+
+        /* NODE STRUCTURE */
+        .node {
+            margin-bottom:10px;
+        }
+
+        .node-header {
+            display:flex;
+            align-items:center;
+            gap:6px;
+        }
+
+        .arrow {
+            font-size:14px;
+            width:18px;
+            background:none;
+        }
+
+        .chip {
+            background:#2d89ef;
+            color:white;
+            padding:6px 12px;
+            border-radius:20px;
+            font-size:13px;
+        }
+
+        .children-box {
+            margin-top:6px;
+            margin-left:20px;
+            background:#f0f0f0;
+            padding:10px;
+            border-radius:8px;
+            display:none;
+            flex-wrap:wrap;
+            gap:6px;
+        }
+
+        .children-box button {
+            background:#4a9fff;
+            color:white;
+            padding:5px 10px;
+            border-radius:15px;
+            font-size:12px;
+        }
+
+        .group-chip {
+            display:inline-block;
+            margin:5px;
+            padding:5px 10px;
+            background:#ddd;
+            border-radius:15px;
+        }
+
+        .query-box {
+            margin-top:15px;
+            padding:10px;
+            background:#f0f0f0;
+            border-radius:6px;
+        }
+
+    </style>
 </head>
 
 <body>
@@ -1006,38 +175,195 @@
     </div>
   </div>
 
-  <script>
-    let orG = [], notT = [], allKws = [], allCl = {}, collapsed = new Set(), dragG = null, dragT = null;
-    addOrGroup();
+<textarea id="userInput"></textarea>
+<button id="generateBtn" onclick="generateKeywords()">Generate Keywords</button>
 
-    function addOrGroup(terms = []) { orG.push([...terms]); renderGrps(); updQ() }
+<div id="mainContainer">
 
-    function renderGrps() {
-      const c = document.getElementById('orGrps'); c.innerHTML = '';
-      orG.forEach((terms, i) => {
-        if (i > 0) { const d = document.createElement('div'); d.className = 'and-div'; d.textContent = 'AND'; c.appendChild(d) }
-        const g = document.createElement('div'); g.className = 'or-group'; if (collapsed.has(i)) g.classList.add('collapsed'); g.dataset.idx = i;
-        const del = orG.length > 1 ? `<button class="g-del" onclick="delGrp(event,${i})" title="Remove">✕</button>` : '';
-        g.innerHTML = `<div class="or-group-hd" onclick="togCol(${i})">
-      <span class="g-arrow">▶</span><span class="g-label">OR Group ${i + 1}</span>
-      <span class="g-count" id="gc${i}">${terms.length} term${terms.length !== 1 ? 's' : ''}</span>${del}
+    <div id="leftPanel">
+        <h2>Query Builder</h2>
+        <div id="groupContainer"></div>
     </div>
-    <div class="or-group-bd">
-      <div class="chips-row" id="cr${i}" ondragover="dOver(event,${i})" ondragleave="dLeave(event,${i})" ondrop="dDrop(event,${i})">
-        ${terms.map(t => chipH(t, i)).join('')}
-        ${!terms.length ? '<span style="color:var(--lt);font-size:12px;padding:4px">Drop keywords here…</span>' : ''}
-      </div>
-      <input class="term-input" placeholder="Type a term and press Enter…" onkeydown="termKey(event,${i})">
-    </div>`;
-        c.appendChild(g);
-      });
+
+    <div id="rightPanel">
+        <h2>Suggested Keywords</h2>
+        <div id="suggestionsContainer"></div>
+    </div>
+
+</div>
+
+<script>
+
+let selectedGroups = [[]];
+
+async function generateKeywords() {
+
+    let text = document.getElementById("userInput").value;
+
+    const response = await fetch("/keywords", {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ text })
+    });
+
+    const data = await response.json();
+
+    let container = document.getElementById("suggestionsContainer");
+    container.innerHTML = "";
+
+    data.keywords.forEach(keyword => {
+        createNode(container, keyword);
+    });
+
+    renderGroups();
+}
+
+
+function createNode(parent, keyword) {
+
+    let nodeDiv = document.createElement("div");
+    nodeDiv.className = "node";
+
+    let header = document.createElement("div");
+    header.className = "node-header";
+
+    let arrow = document.createElement("button");
+    arrow.className = "arrow";
+    arrow.innerText = "▶";
+
+    let chip = document.createElement("button");
+    chip.className = "chip";
+    chip.innerText = keyword;
+
+    let childrenBox = document.createElement("div");
+    childrenBox.className = "children-box";
+
+    // Toggle expansion
+    arrow.onclick = async () => {
+
+        if(childrenBox.style.display === "flex") {
+            childrenBox.style.display = "none";
+            arrow.innerText = "▶";
+            return;
+        }
+
+        arrow.innerText = "▼";
+
+        if(childrenBox.childElementCount === 0) {
+
+            const response = await fetch("/expand-term", {
+                method:"POST",
+                headers:{ "Content-Type":"application/json" },
+                body: JSON.stringify({ term: keyword })
+            });
+
+            if(!response.ok) return;
+
+            const data = await response.json();
+
+            data.expanded.forEach(child => {
+                createNode(childrenBox, child);
+            });
+        }
+
+        childrenBox.style.display = "flex";
+    };
+
+    // Add to Boolean group
+    chip.onclick = () => addToGroup(keyword);
+
+    header.appendChild(arrow);
+    header.appendChild(chip);
+
+    nodeDiv.appendChild(header);
+    nodeDiv.appendChild(childrenBox);
+
+    parent.appendChild(nodeDiv);
+}
+
+
+// QUERY BUILDER
+
+function addToGroup(keyword) {
+    let current = selectedGroups[selectedGroups.length - 1];
+    if(!current.includes(keyword)) {
+        current.push(keyword);
+        renderGroups();
     }
+}
 
-    function chipH(t, gi) { const s = eA(t), h = eH(t); return `<div class="chip-wrap"><div class="chip" draggable="true" ondragstart="dStart(event,'${s}',${gi})" ondragend="dEnd(event)"><span>${h}</span><button class="chip-x" onclick="remT(event,'${s}',${gi})">✕</button></div><div class="tt-box"><span class="tt-kw">${h}</span><span class="tt-def">Loading definition…</span></div></div>` }
+function addNewGroup() {
+    selectedGroups.push([]);
+    renderGroups();
+}
 
-    function termKey(e, i) { if (e.key === 'Enter') { const v = e.target.value.trim(); if (v && !orG[i].includes(v)) { orG[i].push(v); e.target.value = ''; renderGrps(); updQ() } } }
+async function generateBooleanQuery() {
 
-    function remT(e, t, i) { e.stopPropagation(); const row = document.getElementById(`cr${i}`); if (!row) return; row.querySelectorAll('.chip-wrap').forEach(w => { const s = w.querySelector('.chip span'); if (s && s.textContent.trim() === t) { w.querySelector('.chip').classList.add('removing'); setTimeout(() => { orG[i] = orG[i].filter(x => x !== t); renderGrps(); updQ() }, 320) } }) }
+    const response = await fetch("/build-query", {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({
+            or_groups: selectedGroups,
+            not_group: []
+        })
+    });
+
+    const data = await response.json();
+
+    let container = document.getElementById("groupContainer");
+
+    let box = document.createElement("div");
+    box.className = "query-box";
+    box.innerHTML = "<strong>Boolean Query:</strong><br>" + data.boolean_query;
+
+    container.appendChild(box);
+}
+
+function renderGroups() {
+
+    let container = document.getElementById("groupContainer");
+    container.innerHTML = "";
+
+    selectedGroups.forEach((group,index)=>{
+
+        let div = document.createElement("div");
+        div.style.marginBottom="15px";
+
+        let title = document.createElement("h3");
+        title.innerText = "OR Group " + (index+1);
+        div.appendChild(title);
+
+        group.forEach(term=>{
+            let chip = document.createElement("span");
+            chip.className="group-chip";
+            chip.innerText = term;
+            div.appendChild(chip);
+        });
+
+        container.appendChild(div);
+
+        if(index < selectedGroups.length-1){
+            let and = document.createElement("div");
+            and.innerText="AND";
+            and.style.fontWeight="bold";
+            container.appendChild(and);
+        }
+    });
+
+    let build = document.createElement("button");
+    build.innerText="Build Boolean Query";
+    build.onclick=generateBooleanQuery;
+
+    let add = document.createElement("button");
+    add.innerText="+ Add AND Group";
+    add.onclick=addNewGroup;
+    add.style.marginLeft="10px";
+
+    container.appendChild(build);
+    container.appendChild(add);
+}
+
+</script>
 
     function delGrp(e, i) { e.stopPropagation(); orG.splice(i, 1); const ns = new Set(); collapsed.forEach(x => { if (x < i) ns.add(x); else if (x > i) ns.add(x - 1) }); collapsed = ns; renderGrps(); updQ() }
 
