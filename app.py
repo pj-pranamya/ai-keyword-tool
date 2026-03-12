@@ -100,6 +100,36 @@ def rank_keywords_by_relevance(keywords, original_text):
 
     return [kw for kw, score in scored]
 
+def cluster_keywords(keywords, text):
+
+    if not keywords:
+        return {
+            "problem_terms": [],
+            "method_terms": [],
+            "data_terms": [],
+            "other_terms": []
+        }
+
+    embeddings = semantic_model.encode(keywords, convert_to_tensor=True)
+    text_embedding = semantic_model.encode(text, convert_to_tensor=True)
+
+    similarities = util.cos_sim(text_embedding, embeddings)[0]
+
+    scored = list(zip(keywords, similarities.tolist()))
+    scored.sort(key=lambda x: x[1], reverse=True)
+
+    problem_terms = [kw for kw, s in scored[:5]]
+    method_terms = [kw for kw, s in scored[5:10]]
+    data_terms = [kw for kw, s in scored[10:15]]
+    other_terms = [kw for kw, s in scored[15:]]
+
+    return {
+        "problem_terms": problem_terms,
+        "method_terms": method_terms,
+        "data_terms": data_terms,
+        "other_terms": other_terms
+    }
+
 
 def anchor_filter(terms, root_term):
     root_words = set(root_term.lower().split())
@@ -199,7 +229,7 @@ def expand_term_semantically(term):
         title,
         keyphrase_ngram_range=(1, 3),
         stop_words='english',
-        top_n=8
+        top_n=20
     )
 
     for phrase, score in extracted:
@@ -302,7 +332,7 @@ def generate_keywords():
         text,
         keyphrase_ngram_range=(1, 3),
         stop_words='english',
-        top_n=8
+        top_n=20
     )
 
     base_keywords = [kw for kw, score in base_keywords]
@@ -317,7 +347,7 @@ def generate_keywords():
             doc,
             keyphrase_ngram_range=(1, 3),
             stop_words='english',
-            top_n=5
+            top_n=20
         )
 
         for phrase, score in extracted:
@@ -350,10 +380,19 @@ def generate_keywords():
 
     final_keywords = core + explore
 
-    return jsonify({
-    "keywords": final_keywords
-})
 
+    clusters_data = cluster_keywords(final_keywords, text)
+
+    flat_clusters = {}
+    related = clusters_data["method_terms"] + clusters_data["data_terms"]
+
+    for kw in final_keywords:
+     flat_clusters[kw] = related[:3]
+
+    return jsonify({
+    "keywords": final_keywords,
+    "clusters": flat_clusters
+})
 @app.route("/expand-term", methods=["POST"])
 def expand_term():
     data = request.json

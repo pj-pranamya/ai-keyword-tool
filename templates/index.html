@@ -1,309 +1,1131 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
-    <title>AI Keyword Discovery Tool</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background:#f4f6f8;
-            padding:40px;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>AI Keyword Discovery Prototype</title>
+  <meta name="description" content="AI-powered Boolean keyword discovery for academic research.">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f0f2f5;
+      --white: #fff;
+      --cb: #e0e4ec;
+      --text: #1a1d23;
+      --muted: #6b7280;
+      --lt: #9ca3af;
+      --pr: #2563eb;
+      --pr-lt: #eff6ff;
+      --pr-md: #bfdbfe;
+      --pr-dk: #1d4ed8;
+      --chip: #3b82f6;
+      --or-b: #e0e7ff;
+      --or-t: #4338ca;
+      --no-bg: #fef2f2;
+      --no-bd: #fecaca;
+      --no-t: #dc2626;
+      --ok: #059669;
+      --sh: 0 1px 3px rgba(0, 0, 0, .08), 0 1px 2px rgba(0, 0, 0, .05);
+      --sh2: 0 4px 12px rgba(0, 0, 0, .08);
+      --r: 6px;
+      --r2: 10px;
+      --r3: 14px;
+      --tr: .17s cubic-bezier(.4, 0, .2, 1)
+    }
 
-        h1,p { text-align:center; }
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
 
-        textarea {
-            width:60%;
-            height:100px;
-            padding:10px;
-            font-size:16px;
-            display:block;
-            margin:0 auto;
-        }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      font-size: 14px;
+      line-height: 1.5
+    }
 
-        button {
-            cursor:pointer;
-            border:none;
-        }
+    ::-webkit-scrollbar {
+      width: 5px
+    }
 
-        #generateBtn {
-            display:block;
-            margin:15px auto;
-            padding:8px 15px;
-            background:#2d89ef;
-            color:white;
-            border-radius:6px;
-        }
+    ::-webkit-scrollbar-track {
+      background: transparent
+    }
 
-        #mainContainer {
-            display:flex;
-            gap:30px;
-            margin-top:40px;
-        }
+    ::-webkit-scrollbar-thumb {
+      background: #d1d5db;
+      border-radius: 99px
+    }
 
-        #leftPanel,#rightPanel {
-            flex:1;
-            background:white;
-            padding:20px;
-            border-radius:8px;
-            box-shadow:0 0 8px rgba(0,0,0,0.08);
-        }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #9ca3af
+    }
 
-        /* NODE STRUCTURE */
-        .node {
-            margin-bottom:10px;
-        }
+    .top {
+      background: var(--white);
+      border-bottom: 1px solid var(--cb);
+      padding: 36px 24px 28px;
+      text-align: center
+    }
 
-        .node-header {
-            display:flex;
-            align-items:center;
-            gap:6px;
-        }
+    h1 {
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -.4px;
+      margin-bottom: 6px
+    }
 
-        .arrow {
-            font-size:14px;
-            width:18px;
-            background:none;
-        }
+    .sub {
+      font-size: 14px;
+      color: var(--muted);
+      margin-bottom: 20px
+    }
 
-        .chip {
-            background:#2d89ef;
-            color:white;
-            padding:6px 12px;
-            border-radius:20px;
-            font-size:13px;
-        }
+    .inp-wrap {
+      max-width: 700px;
+      margin: 0 auto 16px
+    }
 
-        .children-box {
-            margin-top:6px;
-            margin-left:20px;
-            background:#f0f0f0;
-            padding:10px;
-            border-radius:8px;
-            display:none;
-            flex-wrap:wrap;
-            gap:6px;
-        }
+    textarea#topicInput {
+      width: 100%;
+      min-height: 90px;
+      border: 1.5px solid var(--cb);
+      border-radius: var(--r2);
+      padding: 12px 14px;
+      font-family: inherit;
+      font-size: 13.5px;
+      color: var(--text);
+      background: var(--white);
+      resize: vertical;
+      transition: border-color var(--tr), box-shadow var(--tr);
+      line-height: 1.6
+    }
 
-        .children-box button {
-            background:#4a9fff;
-            color:white;
-            padding:5px 10px;
-            border-radius:15px;
-            font-size:12px;
-        }
+    textarea#topicInput:focus {
+      outline: none;
+      border-color: var(--pr);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, .1)
+    }
 
-        .group-chip {
-            display:inline-block;
-            margin:5px;
-            padding:5px 10px;
-            background:#ddd;
-            border-radius:15px;
-        }
+    textarea#topicInput::placeholder {
+      color: var(--lt)
+    }
 
-        .query-box {
-            margin-top:15px;
-            padding:10px;
-            background:#f0f0f0;
-            border-radius:6px;
-        }
+    .top-btns {
+      display: flex;
+      gap: 10px;
+      justify-content: center
+    }
 
-    </style>
+    .btn {
+      border: none;
+      border-radius: var(--r);
+      padding: 10px 22px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      transition: all var(--tr)
+    }
+
+    .btn.pr {
+      background: var(--pr);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(37, 99, 235, .3)
+    }
+
+    .btn.pr:hover {
+      background: var(--pr-dk);
+      box-shadow: 0 4px 16px rgba(37, 99, 235, .35);
+      transform: translateY(-1px)
+    }
+
+    .btn.pr:disabled {
+      opacity: .65;
+      cursor: not-allowed;
+      transform: none
+    }
+
+    .btn.gh {
+      background: transparent;
+      color: var(--muted);
+      border: 1.5px solid var(--cb)
+    }
+
+    .btn.gh:hover {
+      border-color: var(--pr);
+      color: var(--pr);
+      background: var(--pr-lt)
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      padding: 20px;
+      max-width: 1280px;
+      margin: 0 auto
+    }
+
+    .card {
+      background: var(--white);
+      border: 1px solid var(--cb);
+      border-radius: var(--r3);
+      padding: 22px 20px;
+      box-shadow: var(--sh)
+    }
+
+    .card-title {
+      font-size: 17px;
+      font-weight: 700;
+      margin-bottom: 18px
+    }
+
+    .and-div {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 10px 0;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .06em
+    }
+
+    .and-div::before,
+    .and-div::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--cb)
+    }
+
+    .or-group {
+      border: 1.5px solid var(--cb);
+      border-radius: var(--r2);
+      overflow: hidden;
+      background: #fafbfd;
+      transition: border-color var(--tr), box-shadow var(--tr)
+    }
+
+    .or-group.drag-over {
+      border-color: var(--pr);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, .12);
+      background: var(--pr-lt)
+    }
+
+    .or-group-hd {
+      display: flex;
+      align-items: center;
+      padding: 9px 12px;
+      gap: 8px;
+      cursor: pointer;
+      user-select: none;
+      border-bottom: 1px solid var(--cb);
+      background: #f8f9fc;
+      transition: background var(--tr)
+    }
+
+    .or-group-hd:hover {
+      background: #f1f4fb
+    }
+
+    .g-arrow {
+      font-size: 10px;
+      color: var(--muted);
+      transition: transform var(--tr);
+      width: 14px;
+      text-align: center;
+      flex-shrink: 0
+    }
+
+    .or-group.collapsed .g-arrow {
+      transform: rotate(-90deg)
+    }
+
+    .g-label {
+      font-weight: 600;
+      font-size: 13px;
+      color: var(--or-t);
+      flex: 1
+    }
+
+    .g-count {
+      background: var(--or-b);
+      color: var(--or-t);
+      font-size: 10.5px;
+      font-weight: 700;
+      border-radius: 99px;
+      padding: 2px 9px
+    }
+
+    .g-del {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--lt);
+      font-size: 14px;
+      padding: 2px 4px;
+      border-radius: 4px;
+      transition: color var(--tr), background var(--tr)
+    }
+
+    .g-del:hover {
+      color: var(--no-t);
+      background: var(--no-bg)
+    }
+
+    .or-group-bd {
+      padding: 10px 12px;
+      max-height: 500px;
+      overflow: hidden;
+      transition: max-height .28s cubic-bezier(.4, 0, .2, 1), padding .2s, opacity .2s
+    }
+
+    .or-group.collapsed .or-group-bd {
+      max-height: 0;
+      padding-top: 0;
+      padding-bottom: 0;
+      opacity: 0
+    }
+
+    .chips-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      min-height: 30px;
+      margin-bottom: 8px;
+      border-radius: var(--r);
+      padding: 4px;
+      transition: background var(--tr)
+    }
+
+    .chips-row.drop-t {
+      background: var(--pr-lt);
+      border: 1.5px dashed var(--pr-md)
+    }
+
+    .chip-wrap {
+      position: relative;
+      display: inline-flex
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: var(--chip);
+      color: #fff;
+      border-radius: 99px;
+      padding: 4px 10px 4px 12px;
+      font-size: 12.5px;
+      font-weight: 500;
+      cursor: grab;
+      user-select: none;
+      transition: background var(--tr), transform var(--tr), opacity var(--tr), box-shadow var(--tr);
+      border: none
+    }
+
+    .chip:hover {
+      background: var(--pr-dk);
+      box-shadow: 0 3px 10px rgba(37, 99, 235, .3);
+      transform: translateY(-1px)
+    }
+
+    .chip:active {
+      cursor: grabbing;
+      transform: scale(.97)
+    }
+
+    .chip.dragging {
+      opacity: .35;
+      transform: scale(.95)
+    }
+
+    .chip-x {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, .22);
+      border: none;
+      cursor: pointer;
+      color: #fff;
+      font-size: 10px;
+      padding: 0;
+      transition: background var(--tr), transform var(--tr);
+      flex-shrink: 0
+    }
+
+    .chip-x:hover {
+      background: rgba(255, 255, 255, .4);
+      transform: scale(1.2)
+    }
+
+    @keyframes chipOut {
+      0% {
+        opacity: 1;
+        transform: scale(1);
+        max-width: 220px
+      }
+
+      60% {
+        opacity: 0;
+        transform: scale(.75)
+      }
+
+      100% {
+        opacity: 0;
+        max-width: 0;
+        padding: 0;
+        margin: 0
+      }
+    }
+
+    .chip.removing {
+      animation: chipOut .32s cubic-bezier(.4, 0, .2, 1) forwards;
+      pointer-events: none;
+      overflow: hidden
+    }
+
+    .tt-box {
+      position: absolute;
+      top: calc(100% + 7px);
+      left: 50%;
+      transform: translateX(-50%) translateY(-5px);
+      background: #1e293b;
+      color: #e2e8f0;
+      border-radius: var(--r);
+      padding: 8px 12px;
+      font-size: 11.5px;
+      white-space: nowrap;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, .2);
+      z-index: 300;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity .15s, transform .15s;
+      min-width: 130px;
+      text-align: center
+    }
+
+    .tt-box::after {
+      content: '';
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 5px solid transparent;
+      border-bottom-color: #1e293b
+    }
+
+    .tt-kw {
+      display: block;
+      font-weight: 600;
+      color: #93c5fd;
+      margin-bottom: 2px;
+      font-size: 12px
+    }
+
+    .tt-def {
+      color: #94a3b8;
+      font-style: italic;
+      font-size: 11px
+    }
+
+    .chip-wrap:hover .tt-box,
+    .kw-chip-wrap:hover .tt-box {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0)
+    }
+
+    .chip-wrap,
+    .kw-chip-wrap {
+      overflow: visible
+    }
+
+    .term-input {
+      width: 100%;
+      padding: 7px 10px;
+      border: 1.5px solid var(--cb);
+      border-radius: var(--r);
+      font-family: inherit;
+      font-size: 13px;
+      color: var(--text);
+      background: var(--white);
+      transition: border-color var(--tr), box-shadow var(--tr)
+    }
+
+    .term-input:focus {
+      outline: none;
+      border-color: var(--pr);
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, .1)
+    }
+
+    .term-input::placeholder {
+      color: var(--lt)
+    }
+
+    .add-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 14px
+    }
+
+    .add-btn {
+      flex: 1;
+      padding: 9px 14px;
+      border-radius: var(--r);
+      border: 1.5px dashed var(--cb);
+      background: transparent;
+      color: var(--muted);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all var(--tr)
+    }
+
+    .add-btn:hover {
+      border-color: var(--pr);
+      color: var(--pr);
+      background: var(--pr-lt)
+    }
+
+    .not-sec {
+      margin-top: 18px;
+      padding-top: 14px;
+      border-top: 1px solid var(--cb)
+    }
+
+    .sec-lbl {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px
+    }
+
+    .sec-lbl.red {
+      color: var(--no-t)
+    }
+
+    .not-row {
+      display: flex;
+      gap: 8px
+    }
+
+    .not-row input {
+      flex: 1;
+      padding: 7px 10px;
+      border: 1.5px solid var(--no-bd);
+      border-radius: var(--r);
+      font-family: inherit;
+      font-size: 13px;
+      background: var(--no-bg);
+      color: var(--no-t);
+      transition: border-color var(--tr)
+    }
+
+    .not-row input:focus {
+      outline: none;
+      border-color: var(--no-t)
+    }
+
+    .not-row input::placeholder {
+      color: #fca5a5
+    }
+
+    .not-add {
+      padding: 7px 14px;
+      border-radius: var(--r);
+      border: 1.5px solid var(--no-bd);
+      background: var(--no-bg);
+      color: var(--no-t);
+      font-family: inherit;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all var(--tr)
+    }
+
+    .not-add:hover {
+      background: #fee2e2
+    }
+
+    .not-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px
+    }
+
+    .not-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: var(--no-bg);
+      color: var(--no-t);
+      border: 1px solid var(--no-bd);
+      border-radius: 99px;
+      padding: 3px 10px 3px 12px;
+      font-size: 12px;
+      font-weight: 500
+    }
+
+    .not-chip-x {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: rgba(220, 38, 38, .12);
+      border: none;
+      cursor: pointer;
+      color: var(--no-t);
+      font-size: 9px;
+      padding: 0;
+      transition: background var(--tr)
+    }
+
+    .not-chip-x:hover {
+      background: rgba(220, 38, 38, .25)
+    }
+
+    .q-sec {
+      margin-top: 18px;
+      padding-top: 14px;
+      border-top: 1px solid var(--cb)
+    }
+
+    .q-box {
+      background: #f8f9fc;
+      border: 1.5px solid var(--cb);
+      border-radius: var(--r);
+      padding: 10px 12px;
+      font-family: 'Fira Mono', 'Consolas', monospace;
+      font-size: 12px;
+      color: #1e40af;
+      min-height: 54px;
+      word-break: break-word;
+      line-height: 1.6;
+      overflow: auto;
+      margin-top: 8px
+    }
+
+    .q-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+      align-items: center
+    }
+
+    .copy-btn {
+      padding: 5px 12px;
+      border-radius: var(--r);
+      border: 1.5px solid var(--cb);
+      background: var(--white);
+      color: var(--muted);
+      font-family: inherit;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all var(--tr)
+    }
+
+    .copy-btn:hover {
+      border-color: var(--pr);
+      color: var(--pr)
+    }
+
+    .kw-tree {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 4px;
+      overflow-y: auto;
+      max-height: 420px;
+      padding-right: 2px
+    }
+
+    .kw-tree-item {
+      border-radius: var(--r);
+      overflow: visible
+    }
+
+    .kw-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 6px;
+      border-radius: var(--r);
+      transition: background var(--tr)
+    }
+
+    .kw-row:hover {
+      background: #f1f5fb
+    }
+
+    .kw-exp {
+      width: 20px;
+      height: 20px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--lt);
+      font-size: 10px;
+      border-radius: 4px;
+      flex-shrink: 0;
+      transition: color var(--tr), background var(--tr), transform var(--tr)
+    }
+
+    .kw-exp:hover {
+      background: var(--pr-md);
+      color: var(--pr)
+    }
+
+    .kw-exp.open {
+      transform: rotate(90deg)
+    }
+
+    .kw-chip-wrap {
+      position: relative;
+      display: inline-flex
+    }
+
+    .kw-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--chip);
+      color: #fff;
+      border-radius: 99px;
+      padding: 4px 13px;
+      font-size: 12.5px;
+      font-weight: 500;
+      cursor: pointer;
+      user-select: none;
+      border: none;
+      transition: background var(--tr), transform var(--tr), box-shadow var(--tr)
+    }
+
+    .kw-chip:hover {
+      background: var(--pr-dk);
+      transform: translateY(-1px);
+      box-shadow: 0 3px 10px rgba(37, 99, 235, .28)
+    }
+
+    .kw-chip .sc {
+      font-size: 10px;
+      opacity: .7;
+      font-weight: 400
+    }
+
+    .kw-kids {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      padding: 6px 8px 6px 32px;
+      background: var(--pr-lt);
+      border-radius: 0 0 var(--r) var(--r);
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height .26s cubic-bezier(.4, 0, .2, 1), padding .2s, opacity .2s;
+      opacity: 0
+    }
+
+    .kw-kids.open {
+      max-height: 300px;
+      opacity: 1;
+      padding: 8px 8px 8px 34px
+    }
+
+    .kw-sub {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: #dbeafe;
+      color: var(--pr-dk);
+      border-radius: 99px;
+      padding: 3px 11px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background var(--tr), transform var(--tr);
+      position: relative
+    }
+
+    .kw-sub:hover {
+      background: var(--pr-md);
+      transform: translateY(-1px)
+    }
+
+    .filter-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px
+    }
+
+    .f-inp {
+      flex: 1;
+      padding: 8px 12px;
+      border: 1.5px solid var(--cb);
+      border-radius: var(--r);
+      font-family: inherit;
+      font-size: 13px;
+      background: var(--white);
+      color: var(--text);
+      transition: border-color var(--tr)
+    }
+
+    .f-inp:focus {
+      outline: none;
+      border-color: var(--pr)
+    }
+
+    .f-inp::placeholder {
+      color: var(--lt)
+    }
+
+    .clr-btn {
+      padding: 8px 12px;
+      border: 1.5px solid var(--cb);
+      border-radius: var(--r);
+      background: var(--white);
+      color: var(--muted);
+      font-family: inherit;
+      font-size: 12.5px;
+      cursor: pointer;
+      transition: all var(--tr)
+    }
+
+    .clr-btn:hover {
+      border-color: var(--pr);
+      color: var(--pr)
+    }
+
+    .empty {
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      padding: 40px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px
+    }
+
+    .empty-ic {
+      font-size: 34px;
+      opacity: .45
+    }
+
+    .so-sec {
+      margin-top: 18px;
+      padding-top: 14px;
+      border-top: 1px solid var(--cb)
+    }
+
+    .so-btns {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 8px
+    }
+
+    .eng-btn {
+      flex: 1;
+      min-width: 130px;
+      padding: 9px 12px;
+      border: 1.5px solid var(--cb);
+      border-radius: var(--r);
+      background: var(--white);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all var(--tr);
+      box-shadow: var(--sh)
+    }
+
+    .eng-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--sh2)
+    }
+
+    .eng-btn.sc:hover {
+      border-color: #4285f4;
+      color: #1a56db;
+      background: #eff6ff
+    }
+
+    .eng-btn.pm:hover {
+      border-color: #0d9488;
+      color: #0f766e;
+      background: #f0fdfa
+    }
+
+    .eng-btn.ss:hover {
+      border-color: var(--pr);
+      color: var(--pr);
+      background: var(--pr-lt)
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg)
+      }
+    }
+
+    .spin {
+      display: inline-block;
+      width: 15px;
+      height: 15px;
+      border: 2px solid rgba(255, 255, 255, .35);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .65s linear infinite
+    }
+
+    #toasts {
+      position: fixed;
+      top: 18px;
+      right: 18px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 8px
+    }
+
+    .toast {
+      padding: 10px 16px;
+      border-radius: var(--r);
+      background: #1e293b;
+      color: #e2e8f0;
+      font-size: 13px;
+      font-weight: 500;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, .1);
+      animation: tIn .25s ease
+    }
+
+    @keyframes tIn {
+      from {
+        opacity: 0;
+        transform: translateX(20px)
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(0)
+      }
+    }
+  </style>
 </head>
 
 <body>
+  <div id="toasts"></div>
 
-<h1>AI Keyword Discovery Prototype</h1>
-<p>Enter a research idea or keywords:</p>
+  <div class="top">
+    <h1>AI Keyword Discovery Prototype</h1>
+    <p class="sub">Enter a research idea or keywords:</p>
+    <div class="inp-wrap">
+      <textarea id="topicInput" placeholder="e.g. Detecting Alzheimer's using speech patterns"></textarea>
+    </div>
+    <div class="top-btns">
+      <button class="btn pr" id="genBtn" onclick="generateKeywords()">Generate Keywords</button>
+      <button class="btn gh" onclick="resetAll()">↺ Reset</button>
+    </div>
+  </div>
 
-<textarea id="userInput"></textarea>
-<button id="generateBtn" onclick="generateKeywords()">Generate Keywords</button>
-
-<div id="mainContainer">
-
-    <div id="leftPanel">
-        <h2>Query Builder</h2>
-        <div id="groupContainer"></div>
+  <div class="layout">
+    <div class="card">
+      <div class="card-title">Query Builder</div>
+      <div id="orGrps"></div>
+      <div class="add-row">
+        <button class="add-btn" onclick="addOrGroup()">+ Add OR Group</button>
+        <button class="add-btn" onclick="addOrGroup()">+ Add AND Group</button>
+      </div>
+      <div class="not-sec">
+        <div class="sec-lbl red">⛔ NOT — Exclude Terms</div>
+        <div class="not-row">
+          <input id="notIn" placeholder="Term to exclude…" onkeydown="if(event.key==='Enter')addNot()">
+          <button class="not-add" onclick="addNot()">Add</button>
+        </div>
+        <div class="not-chips" id="notChips"></div>
+      </div>
+      <div class="q-sec">
+        <div class="sec-lbl">Boolean Query</div>
+        <div class="q-box" id="qOut">No query yet — add terms above.</div>
+        <div class="q-actions">
+          <button class="copy-btn" id="cpBtn" onclick="copyQ()">📋 Copy</button>
+          <span id="cpMsg" style="font-size:12px;color:var(--ok);opacity:0;transition:opacity .3s"></span>
+        </div>
+      </div>
     </div>
 
-    <div id="rightPanel">
-        <h2>Suggested Keywords</h2>
-        <div id="suggestionsContainer"></div>
+    <div class="card">
+      <div class="card-title">Suggested Keywords</div>
+      <div class="filter-row">
+        <input class="f-inp" id="fIn" placeholder="Filter suggestions…" oninput="filterKws()">
+        <button class="clr-btn" onclick="clearF()">✕ Clear</button>
+      </div>
+      <div class="kw-tree" id="kwTree">
+        <div class="empty">
+          <div class="empty-ic">🔬</div>Enter a research topic and click <strong>Generate Keywords</strong><br>to see
+          AI-powered suggestions.
+        </div>
+      </div>
+      <div class="so-sec">
+        <div class="sec-lbl">🔎 Search On</div>
+        <div class="so-btns">
+          <button class="eng-btn sc" onclick="searchOn('scholar')">🎓 Google Scholar</button>
+          <button class="eng-btn pm" onclick="searchOn('pubmed')">🧬 PubMed</button>
+          <button class="eng-btn ss" onclick="searchOn('semantic')">📡 Semantic Scholar</button>
+        </div>
+      </div>
     </div>
+  </div>
 
-</div>
+  <script>
+    let orG = [], notT = [], allKws = [], allCl = {}, collapsed = new Set(), dragG = null, dragT = null;
+    addOrGroup();
 
-<script>
+    function addOrGroup(terms = []) { orG.push([...terms]); renderGrps(); updQ() }
 
-let selectedGroups = [[]];
-
-async function generateKeywords() {
-
-    let text = document.getElementById("userInput").value;
-
-    const response = await fetch("/keywords", {
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({ text })
-    });
-
-    const data = await response.json();
-
-    let container = document.getElementById("suggestionsContainer");
-    container.innerHTML = "";
-
-    data.keywords.forEach(keyword => {
-        createNode(container, keyword);
-    });
-
-    renderGroups();
-}
-
-
-function createNode(parent, keyword) {
-
-    let nodeDiv = document.createElement("div");
-    nodeDiv.className = "node";
-
-    let header = document.createElement("div");
-    header.className = "node-header";
-
-    let arrow = document.createElement("button");
-    arrow.className = "arrow";
-    arrow.innerText = "▶";
-
-    let chip = document.createElement("button");
-    chip.className = "chip";
-    chip.innerText = keyword;
-
-    let childrenBox = document.createElement("div");
-    childrenBox.className = "children-box";
-
-    // Toggle expansion
-    arrow.onclick = async () => {
-
-        if(childrenBox.style.display === "flex") {
-            childrenBox.style.display = "none";
-            arrow.innerText = "▶";
-            return;
-        }
-
-        arrow.innerText = "▼";
-
-        if(childrenBox.childElementCount === 0) {
-
-            const response = await fetch("/expand-term", {
-                method:"POST",
-                headers:{ "Content-Type":"application/json" },
-                body: JSON.stringify({ term: keyword })
-            });
-
-            if(!response.ok) return;
-
-            const data = await response.json();
-
-            data.expanded.forEach(child => {
-                createNode(childrenBox, child);
-            });
-        }
-
-        childrenBox.style.display = "flex";
-    };
-
-    // Add to Boolean group
-    chip.onclick = () => addToGroup(keyword);
-
-    header.appendChild(arrow);
-    header.appendChild(chip);
-
-    nodeDiv.appendChild(header);
-    nodeDiv.appendChild(childrenBox);
-
-    parent.appendChild(nodeDiv);
-}
-
-
-// QUERY BUILDER
-
-function addToGroup(keyword) {
-    let current = selectedGroups[selectedGroups.length - 1];
-    if(!current.includes(keyword)) {
-        current.push(keyword);
-        renderGroups();
+    function renderGrps() {
+      const c = document.getElementById('orGrps'); c.innerHTML = '';
+      orG.forEach((terms, i) => {
+        if (i > 0) { const d = document.createElement('div'); d.className = 'and-div'; d.textContent = 'AND'; c.appendChild(d) }
+        const g = document.createElement('div'); g.className = 'or-group'; if (collapsed.has(i)) g.classList.add('collapsed'); g.dataset.idx = i;
+        const del = orG.length > 1 ? `<button class="g-del" onclick="delGrp(event,${i})" title="Remove">✕</button>` : '';
+        g.innerHTML = `<div class="or-group-hd" onclick="togCol(${i})">
+      <span class="g-arrow">▶</span><span class="g-label">OR Group ${i + 1}</span>
+      <span class="g-count" id="gc${i}">${terms.length} term${terms.length !== 1 ? 's' : ''}</span>${del}
+    </div>
+    <div class="or-group-bd">
+      <div class="chips-row" id="cr${i}" ondragover="dOver(event,${i})" ondragleave="dLeave(event,${i})" ondrop="dDrop(event,${i})">
+        ${terms.map(t => chipH(t, i)).join('')}
+        ${!terms.length ? '<span style="color:var(--lt);font-size:12px;padding:4px">Drop keywords here…</span>' : ''}
+      </div>
+      <input class="term-input" placeholder="Type a term and press Enter…" onkeydown="termKey(event,${i})">
+    </div>`;
+        c.appendChild(g);
+      });
     }
+
+    function chipH(t, gi) { const s = eA(t), h = eH(t); return `<div class="chip-wrap"><div class="chip" draggable="true" ondragstart="dStart(event,'${s}',${gi})" ondragend="dEnd(event)"><span>${h}</span><button class="chip-x" onclick="remT(event,'${s}',${gi})">✕</button></div><div class="tt-box"><span class="tt-kw">${h}</span><span class="tt-def">Loading definition…</span></div></div>` }
+
+    function termKey(e, i) { if (e.key === 'Enter') { const v = e.target.value.trim(); if (v && !orG[i].includes(v)) { orG[i].push(v); e.target.value = ''; renderGrps(); updQ() } } }
+
+    function remT(e, t, i) { e.stopPropagation(); const row = document.getElementById(`cr${i}`); if (!row) return; row.querySelectorAll('.chip-wrap').forEach(w => { const s = w.querySelector('.chip span'); if (s && s.textContent.trim() === t) { w.querySelector('.chip').classList.add('removing'); setTimeout(() => { orG[i] = orG[i].filter(x => x !== t); renderGrps(); updQ() }, 320) } }) }
+
+    function delGrp(e, i) { e.stopPropagation(); orG.splice(i, 1); const ns = new Set(); collapsed.forEach(x => { if (x < i) ns.add(x); else if (x > i) ns.add(x - 1) }); collapsed = ns; renderGrps(); updQ() }
+
+    function togCol(i) { collapsed.has(i) ? collapsed.delete(i) : collapsed.add(i); renderGrps() }
+
+    function addNot() { const i = document.getElementById('notIn'), v = i.value.trim(); if (v && !notT.includes(v)) { notT.push(v); i.value = ''; renderNot(); updQ() } }
+
+    function renderNot() { document.getElementById('notChips').innerHTML = notT.map(t => `<div class="not-chip"><span>${eH(t)}</span><button class="not-chip-x" onclick="remN('${eA(t)}')">✕</button></div>`).join('') }
+
+    function remN(t) { notT = notT.filter(x => x !== t); renderNot(); updQ() }
+
+    function updQ() { const p = orG.map(g => g.length ? `(${g.map(t => `"${t}"`).join(' OR ')})` : null).filter(Boolean); let q = p.join(' AND '); if (notT.length) q += ` NOT (${notT.map(t => `"${t}"`).join(' OR ')})`; document.getElementById('qOut').textContent = q || 'No query yet — add terms above.' }
+
+    function copyQ() { const t = document.getElementById('qOut').textContent; if (t.startsWith('No query')) return; navigator.clipboard.writeText(t).then(() => { const b = document.getElementById('cpBtn'), m = document.getElementById('cpMsg'); b.textContent = '✅ Copied!'; m.textContent = 'Copied to clipboard'; m.style.opacity = '1'; setTimeout(() => { b.textContent = '📋 Copy'; m.style.opacity = '0' }, 2000) }) }
+
+    function dStart(e, t, g) { dragG = g; dragT = t; e.dataTransfer.effectAllowed = 'move'; setTimeout(() => { const el = e.target.closest ? e.target.closest('.chip') : e.target; if (el) el.classList.add('dragging') }, 0) }
+    function dEnd(e) { document.querySelectorAll('.chip.dragging').forEach(el => el.classList.remove('dragging')); document.querySelectorAll('.or-group.drag-over').forEach(el => el.classList.remove('drag-over')); document.querySelectorAll('.chips-row.drop-t').forEach(el => el.classList.remove('drop-t')) }
+    function dOver(e, i) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; const g = document.querySelector(`.or-group[data-idx="${i}"]`); if (g) g.classList.add('drag-over'); const r = document.getElementById(`cr${i}`); if (r) r.classList.add('drop-t') }
+    function dLeave(e, i) { if (!e.currentTarget.contains(e.relatedTarget)) { const g = document.querySelector(`.or-group[data-idx="${i}"]`); if (g) g.classList.remove('drag-over'); const r = document.getElementById(`cr${i}`); if (r) r.classList.remove('drop-t') } }
+    function dDrop(e, to) { e.preventDefault(); if (!dragT || dragG === null || dragG === to) { dEnd(e); return } orG[dragG] = orG[dragG].filter(t => t !== dragT); if (!orG[to].includes(dragT)) orG[to].push(dragT); toast(`Moved "${dragT}" → OR Group ${to + 1}`); dragG = null; dragT = null; dEnd(e); renderGrps(); updQ() }
+
+    async function generateKeywords() {
+      const text = document.getElementById('topicInput').value.trim(); if (!text) { toast('Enter a research topic first.'); return }
+      const btn = document.getElementById('genBtn'); btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Generating…';
+      try {
+        const r = await fetch('/keywords', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) });
+        if (!r.ok) throw new Error(`Server error ${r.status}`);
+        const d = await r.json(); allKws = d.keywords || []; allCl = d.clusters || {};
+        renderKwTree(allKws, allCl); autoFill(allKws, allCl); toast(`✅ Generated ${allKws.length} keywords`);
+      } catch (err) {
+        document.getElementById('kwTree').innerHTML = `<div class="empty"><div class="empty-ic">⚠️</div>Could not connect to Flask server.<br><small style="color:var(--lt)">Make sure app.py is running.</small></div>`;
+        toast('❌ ' + err.message);
+      } finally { btn.disabled = false; btn.innerHTML = 'Generate Keywords' }
+    }
+
+    async function expandKeyword(term){
+
+  const res = await fetch('/expand-term',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({term})
+  });
+
+  const data = await res.json();
+
+  const expanded = data.expanded || [];
+
+  const container = document.querySelector(`[data-kw="${term}"]`);
+
+  if(!container) return;
+
+  container.innerHTML = expanded.map(k =>
+      `<div class="kw-chip">${k}</div>`
+  ).join('');
+
 }
 
-function addNewGroup() {
-    selectedGroups.push([]);
-    renderGroups();
-}
+    function renderKwTree(kws, cl) {
+      const tree = document.getElementById('kwTree');
+      if (!kws.length) { tree.innerHTML = '<div class="empty"><div class="empty-ic">🤷</div>No keywords found.</div>'; return }
+      
+      const top = kws.slice(0, 12);
+      tree.innerHTML = top.map((kw, i) => {
+        const kids = cl[kw] || [];
+        const pct = Math.round(100 - (i / top.length) * 40), hk = eA(kw);
+        const ch = kids.slice(0, 6).map(c => `<div class="kw-chip-wrap"><div class="kw-sub" onclick="addKw('${eA(c)}')">${eH(c)}</div><div class="tt-box"><span class="tt-kw">${eH(c)}</span><span class="tt-def">Loading definition…</span></div></div>`).join('');
+        return `<div class="kw-tree-item"><div class="kw-row">${kids.length ? `<button class="kw-exp" id="eb${i}" onclick="togKw(${i})" title="Expand">▶</button>` : '<span style="width:20px;flex-shrink:0"></span>'}<div class="kw-chip-wrap"><div class="kw-chip" onclick="addKw('${hk}')">${eH(kw)}<span class="sc">${pct}%</span></div><div class="tt-box"><span class="tt-kw">${eH(kw)}</span><span class="tt-def">Loading definition…</span></div></div></div>${kids.length ? `<div class="kw-kids" id="kk${i}">${ch}</div>` : ''}</div>`;
+      }).join('');
+    }
 
-async function generateBooleanQuery() {
+    function togKw(i) { const k = document.getElementById(`kk${i}`), b = document.getElementById(`eb${i}`); if (!k) return; const o = k.classList.toggle('open'); if (b) b.classList.toggle('open', o) }
 
-    const response = await fetch("/build-query", {
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({
-            or_groups: selectedGroups,
-            not_group: []
-        })
-    });
+    function addKw(t) { let idx = orG.findIndex(g => !g.includes(t)); if (idx === -1) { addOrGroup([t]); return } orG[idx].push(t); renderGrps(); updQ(); toast(`Added "${t}" to OR Group ${idx + 1}`) }
 
-    const data = await response.json();
+    function autoFill(kws, cl) { const p = (cl.problem_terms || []).slice(0, 4), m = (cl.method_terms || []).slice(0, 3); if (p.length) orG[0] = p; if (m.length && orG.length === 1) orG.push(m); else if (m.length && orG[1]) orG[1] = m; renderGrps(); updQ() }
 
-    let container = document.getElementById("groupContainer");
+    function filterKws() { const q = document.getElementById('fIn').value.toLowerCase(); renderKwTree(allKws.filter(k => k.toLowerCase().includes(q)), {}) }
+    function clearF() { document.getElementById('fIn').value = ''; renderKwTree(allKws, allCl) }
 
-    let box = document.createElement("div");
-    box.className = "query-box";
-    box.innerHTML = "<strong>Boolean Query:</strong><br>" + data.boolean_query;
+    function searchOn(e) { const q = document.getElementById('qOut').textContent; if (q.startsWith('No query')) { toast('Build a query first!'); return } const enc = encodeURIComponent(q); window.open({ scholar: `https://scholar.google.com/scholar?q=${enc}`, pubmed: `https://pubmed.ncbi.nlm.nih.gov/?term=${enc}`, semantic: `https://www.semanticscholar.org/search?q=${enc}&sort=Relevance` }[e], '_blank', 'noopener') }
 
-    container.appendChild(box);
-}
+    function resetAll() { orG = []; notT = []; allKws = []; allCl = {}; collapsed = new Set(); addOrGroup(); renderNot(); updQ(); document.getElementById('kwTree').innerHTML = '<div class="empty"><div class="empty-ic">🔬</div>Enter a research topic and click <strong>Generate Keywords</strong><br>to see AI-powered suggestions.</div>'; document.getElementById('topicInput').value = ''; document.getElementById('fIn').value = '' }
 
-function renderGroups() {
+    function toast(msg, ms = 2500) { const c = document.getElementById('toasts'), el = document.createElement('div'); el.className = 'toast'; el.textContent = msg; c.appendChild(el); setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity .3s' }, ms - 300); setTimeout(() => el.remove(), ms) }
 
-    let container = document.getElementById("groupContainer");
-    container.innerHTML = "";
-
-    selectedGroups.forEach((group,index)=>{
-
-        let div = document.createElement("div");
-        div.style.marginBottom="15px";
-
-        let title = document.createElement("h3");
-        title.innerText = "OR Group " + (index+1);
-        div.appendChild(title);
-
-        group.forEach(term=>{
-            let chip = document.createElement("span");
-            chip.className="group-chip";
-            chip.innerText = term;
-            div.appendChild(chip);
-        });
-
-        container.appendChild(div);
-
-        if(index < selectedGroups.length-1){
-            let and = document.createElement("div");
-            and.innerText="AND";
-            and.style.fontWeight="bold";
-            container.appendChild(and);
-        }
-    });
-
-    let build = document.createElement("button");
-    build.innerText="Build Boolean Query";
-    build.onclick=generateBooleanQuery;
-
-    let add = document.createElement("button");
-    add.innerText="+ Add AND Group";
-    add.onclick=addNewGroup;
-    add.style.marginLeft="10px";
-
-    container.appendChild(build);
-    container.appendChild(add);
-}
-
-</script>
-
+    function eH(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;') }
+    function eA(s) { return String(s).replace(/'/g, "\\'").replace(/"/g, '&quot;') }
+  </script>
 </body>
+
 </html>
