@@ -410,14 +410,16 @@
       border-radius: var(--r);
       padding: 8px 12px;
       font-size: 11.5px;
-      white-space: nowrap;
+      white-space: normal;
+      max-width: 260px;
+      line-height: 1.4;   
       box-shadow: 0 6px 20px rgba(0, 0, 0, .2);
       z-index: 300;
       pointer-events: none;
       opacity: 0;
       transition: opacity .15s, transform .15s;
       min-width: 130px;
-      text-align: center
+      text-align: left
     }
 
     .tt-box::after {
@@ -744,7 +746,7 @@
       background: var(--pr-lt);
       border-radius: 0 0 var(--r) var(--r);
       max-height: 0;
-      overflow: hidden;
+      overflow: visible;
       transition: max-height .26s cubic-bezier(.4, 0, .2, 1), padding .2s, opacity .2s;
       opacity: 0
     }
@@ -1058,6 +1060,25 @@
     function dOver(e, i) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; const g = document.querySelector(`.or-group[data-idx="${i}"]`); if (g) g.classList.add('drag-over'); const r = document.getElementById(`cr${i}`); if (r) r.classList.add('drop-t') }
     function dLeave(e, i) { if (!e.currentTarget.contains(e.relatedTarget)) { const g = document.querySelector(`.or-group[data-idx="${i}"]`); if (g) g.classList.remove('drag-over'); const r = document.getElementById(`cr${i}`); if (r) r.classList.remove('drop-t') } }
     function dDrop(e, to) { e.preventDefault(); if (!dragT || dragG === null || dragG === to) { dEnd(e); return } orG[dragG] = orG[dragG].filter(t => t !== dragT); if (!orG[to].includes(dragT)) orG[to].push(dragT); toast(`Moved "${dragT}" → OR Group ${to + 1}`); dragG = null; dragT = null; dEnd(e); renderGrps(); updQ() }
+    
+    async function loadDefinition(el, term){
+
+  const box = el.querySelector('.tt-def');
+  if(!box) return;
+
+  if(box.dataset.loaded) return;
+
+  const res = await fetch('/definition',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({term})
+  });
+
+  const data = await res.json();
+
+  box.textContent = data.definition || "No definition found";
+  box.dataset.loaded = true;
+}
 
     async function generateKeywords() {
       const text = document.getElementById('topicInput').value.trim(); if (!text) { toast('Enter a research topic first.'); return }
@@ -1101,14 +1122,85 @@
       
       const top = kws.slice(0, 12);
       tree.innerHTML = top.map((kw, i) => {
-        const kids = cl[kw] || [];
+        const kids = (cl[kw] || []).slice(0,4);
         const pct = Math.round(100 - (i / top.length) * 40), hk = eA(kw);
         const ch = kids.slice(0, 6).map(c => `<div class="kw-chip-wrap"><div class="kw-sub" onclick="addKw('${eA(c)}')">${eH(c)}</div><div class="tt-box"><span class="tt-kw">${eH(c)}</span><span class="tt-def">Loading definition…</span></div></div>`).join('');
         return `<div class="kw-tree-item"><div class="kw-row">${kids.length ? `<button class="kw-exp" id="eb${i}" onclick="togKw(${i})" title="Expand">▶</button>` : '<span style="width:20px;flex-shrink:0"></span>'}<div class="kw-chip-wrap"><div class="kw-chip" onclick="addKw('${hk}')">${eH(kw)}<span class="sc">${pct}%</span></div><div class="tt-box"><span class="tt-kw">${eH(kw)}</span><span class="tt-def">Loading definition…</span></div></div></div>${kids.length ? `<div class="kw-kids" id="kk${i}">${ch}</div>` : ''}</div>`;
       }).join('');
+      setTimeout(() => {
+
+  document.querySelectorAll('.kw-chip-wrap').forEach(el => {
+
+      const keyword = el.innerText.trim().split('\n')[0];
+
+      el.addEventListener('mouseenter', () => {
+          loadDefinition(el, keyword);
+      });
+
+  });
+
+}, 100);
     }
 
-    function togKw(i) { const k = document.getElementById(`kk${i}`), b = document.getElementById(`eb${i}`); if (!k) return; const o = k.classList.toggle('open'); if (b) b.classList.toggle('open', o) }
+    async function togKw(i) {
+
+  const kids = document.getElementById(`kk${i}`);
+  const btn = document.getElementById(`eb${i}`);
+
+  if (!kids) return;
+
+  const open = kids.classList.toggle('open');
+  if (btn) btn.classList.toggle('open', open);
+
+  if (open && kids.innerHTML.trim() === "") {
+
+      const kw = allKws[i];
+
+      kids.innerHTML = `<div style="padding:6px;font-size:12px;color:#777">Loading...</div>`;
+
+      const res = await fetch('/expand-term', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({term: kw})
+      });
+
+      const data = await res.json();
+      const expanded = data.expanded || [];
+
+      kids.innerHTML = expanded.map(c =>
+        `<div class="kw-chip-wrap">
+           <div class="kw-sub" onclick="expandKeyword('${c}', this)">${c}</div>
+         </div>`
+      ).join('');
+  }
+}
+async function expandKeyword(term, el){
+
+  const parent = el.parentElement;
+
+  if(parent.dataset.expanded) return;
+
+  const res = await fetch('/expand-term',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({term})
+  });
+
+  const data = await res.json();
+
+  const expanded = data.expanded || [];
+
+  const newRow = document.createElement("div");
+  newRow.className = "kw-kids";
+  newRow.style.marginLeft = "20px";
+
+  newRow.innerHTML = expanded.slice(0,4).map(k =>
+      `<div class="kw-sub">${k}</div>`
+  ).join('');
+
+  parent.appendChild(newRow);
+  parent.dataset.expanded = true;
+}
 
     function addKw(t) { let idx = orG.findIndex(g => !g.includes(t)); if (idx === -1) { addOrGroup([t]); return } orG[idx].push(t); renderGrps(); updQ(); toast(`Added "${t}" to OR Group ${idx + 1}`) }
 

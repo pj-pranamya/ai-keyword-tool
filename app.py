@@ -229,7 +229,7 @@ def expand_term_semantically(term):
         title,
         keyphrase_ngram_range=(1, 3),
         stop_words='english',
-        top_n=20
+        top_n=40
     )
 
     for phrase, score in extracted:
@@ -248,7 +248,7 @@ def expand_term_semantically(term):
     scored_terms = []
 
     for i, score in enumerate(similarities):
-        if score > 0.60:
+        if score > 0.50:
             scored_terms.append((concept_bank[i], score.item()))
 
     scored_terms.sort(key=lambda x: x[1], reverse=True)
@@ -261,6 +261,14 @@ def expand_term_semantically(term):
     expanded_terms = refine_keywords(expanded_terms)
     expanded_terms = pos_filter_phrases(expanded_terms)
     expanded_terms = rank_keywords_by_relevance(expanded_terms, term)
+
+    diverse_terms = []
+
+    for term in expanded_terms:
+      if not any(term in t or t in term for t in diverse_terms):
+        diverse_terms.append(term)
+
+    expanded_terms = diverse_terms
 
     return expanded_terms[:15]
 
@@ -332,7 +340,7 @@ def generate_keywords():
         text,
         keyphrase_ngram_range=(1, 3),
         stop_words='english',
-        top_n=20
+        top_n=40
     )
 
     base_keywords = [kw for kw, score in base_keywords]
@@ -347,7 +355,7 @@ def generate_keywords():
             doc,
             keyphrase_ngram_range=(1, 3),
             stop_words='english',
-            top_n=20
+            top_n=40
         )
 
         for phrase, score in extracted:
@@ -384,10 +392,20 @@ def generate_keywords():
     clusters_data = cluster_keywords(final_keywords, text)
 
     flat_clusters = {}
-    related = clusters_data["method_terms"] + clusters_data["data_terms"]
 
     for kw in final_keywords:
-     flat_clusters[kw] = related[:3]
+
+     term_embedding = semantic_model.encode(kw, convert_to_tensor=True)
+     keyword_embeddings = semantic_model.encode(final_keywords, convert_to_tensor=True)
+
+     similarities = util.cos_sim(term_embedding, keyword_embeddings)[0]
+
+     scored = list(zip(final_keywords, similarities.tolist()))
+     scored.sort(key=lambda x: x[1], reverse=True)
+
+     related = [k for k, s in scored if k != kw][:5]
+
+     flat_clusters[kw] = related
 
     return jsonify({
     "keywords": final_keywords,
@@ -425,6 +443,38 @@ def build_query_route():
         "boolean_query": boolean_query
     })
 
+@app.route("/definition", methods=["POST"])
+def get_definition():
+
+    data = request.json
+    term = data.get("term","")
+
+    try:
+
+        # try whole phrase first
+        url = f"https://api.dictionaryapi.dev/api/v2/entries/en/{term}"
+        r = requests.get(url)
+
+        if r.status_code == 200:
+            definition = r.json()[0]["meanings"][0]["definitions"][0]["definition"]
+            return jsonify({"definition":definition})
+
+        # fallback: explain first meaningful word
+        words = term.split()
+
+        for w in words:
+            if len(w) > 3:
+                url = f"https://api.dictionaryapi.dev/api/v2/entries/en/{w}"
+                r = requests.get(url)
+
+                if r.status_code == 200:
+                    definition = r.json()[0]["meanings"][0]["definitions"][0]["definition"]
+                    return jsonify({"definition":definition})
+
+    except:
+        pass
+
+    return jsonify({"definition":"Research concept related to: " + term})
 
 if __name__ == "__main__":
     app.run(debug=True)
