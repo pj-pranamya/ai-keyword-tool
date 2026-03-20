@@ -717,7 +717,7 @@
       background: var(--chip);
       color: #fff;
       border-radius: 99px;
-      padding: 4px 13px;
+      padding: 6px 12px;
       font-size: 12.5px;
       font-weight: 500;
       cursor: pointer;
@@ -739,20 +739,23 @@
     }
 
     .kw-kids {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 5px;
-      padding: 6px 8px 6px 32px;
-      background: var(--pr-lt);
-      border-radius: 0 0 var(--r) var(--r);
-      max-height: 0;
-      overflow: visible;
-      transition: max-height .26s cubic-bezier(.4, 0, .2, 1), padding .2s, opacity .2s;
-      opacity: 0
-    }
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 6px 8px 6px 20px;
+  background: transparent;
+  border-radius: 0 0 var(--r) var(--r);
+  max-height: 0;
+  overflow: visible;
+  transition: max-height .26s cubic-bezier(.4, 0, .2, 1), padding .2s, opacity .2s;
+  opacity: 0;
+
+  margin-left: 10px;
+  border-left: 2px solid #e5e7eb;
+}
 
     .kw-kids.open {
-      max-height: 300px;
+      max-height: 500px;
       opacity: 1;
       padding: 8px 8px 8px 34px
     }
@@ -761,8 +764,8 @@
       display: inline-flex;
       align-items: center;
       gap: 5px;
-      background: #dbeafe;
-      color: var(--pr-dk);
+      background: #e0ecff;   /* slightly softer blue */
+      color: #1d4ed8;        /* clearer blue */
       border-radius: 99px;
       padding: 3px 11px;
       font-size: 12px;
@@ -770,7 +773,27 @@
       cursor: pointer;
       transition: background var(--tr), transform var(--tr);
       position: relative
+      
     }
+    
+    .kw-kids .kw-kids .kw-sub {
+  background: #fef9e7;
+  color: #92400e;
+  font-size: 11px;
+  padding: 2px 9px;
+}
+.kw-kids .kw-kids {
+  margin-left: 14px;
+  border-left: 1px solid #e5e7eb;
+}
+.kw-kids .kw-kids .kw-exp {
+  font-size: 10px;
+  opacity: 0.7;
+}
+    .kw-chip-wrap .kw-chip-wrap .kw-sub {
+  background: #f1f5ff;
+  color: #4338ca;
+}
 
     .kw-sub:hover {
       background: var(--pr-md);
@@ -1125,7 +1148,7 @@
         const kids = (cl[kw] || []).slice(0,4);
         const pct = Math.round(100 - (i / top.length) * 40), hk = eA(kw);
         const ch = kids.slice(0, 6).map(c => `<div class="kw-chip-wrap"><div class="kw-sub" onclick="addKw('${eA(c)}')">${eH(c)}</div><div class="tt-box"><span class="tt-kw">${eH(c)}</span><span class="tt-def">Loading definition…</span></div></div>`).join('');
-        return `<div class="kw-tree-item"><div class="kw-row">${kids.length ? `<button class="kw-exp" id="eb${i}" onclick="togKw(${i})" title="Expand">▶</button>` : '<span style="width:20px;flex-shrink:0"></span>'}<div class="kw-chip-wrap"><div class="kw-chip" onclick="addKw('${hk}')">${eH(kw)}<span class="sc">${pct}%</span></div><div class="tt-box"><span class="tt-kw">${eH(kw)}</span><span class="tt-def">Loading definition…</span></div></div></div>${kids.length ? `<div class="kw-kids" id="kk${i}">${ch}</div>` : ''}</div>`;
+        return `<div class="kw-tree-item"><div class="kw-row"><button class="kw-exp" id="eb${i}" onclick="togKw('${hk}', ${i})" title="Expand">▶</button><div class="kw-chip-wrap"><div class="kw-chip" onclick="addKw('${hk}')">${eH(kw)}<span class="sc">${pct}%</span></div><div class="tt-box"><span class="tt-kw">${eH(kw)}</span><span class="tt-def">Loading definition…</span></div></div></div><div class="kw-kids" id="kk${i}"></div></div>`;
       }).join('');
       setTimeout(() => {
 
@@ -1142,7 +1165,7 @@
 }, 100);
     }
 
-    async function togKw(i) {
+    async function togKw(term,i) {
 
   const kids = document.getElementById(`kk${i}`);
   const btn = document.getElementById(`eb${i}`);
@@ -1154,7 +1177,7 @@
 
   if (open && kids.innerHTML.trim() === "") {
 
-      const kw = allKws[i];
+      const kw = term;
 
       kids.innerHTML = `<div style="padding:6px;font-size:12px;color:#777">Loading...</div>`;
 
@@ -1167,11 +1190,12 @@
       const data = await res.json();
       const expanded = data.expanded || [];
 
-      kids.innerHTML = expanded.map(c =>
-        `<div class="kw-chip-wrap">
-           <div class="kw-sub" onclick="expandKeyword('${c}', this)">${c}</div>
-         </div>`
-      ).join('');
+      kids.innerHTML = expanded.map(c => `
+  <div class="kw-chip-wrap">
+      <button class="kw-exp" onclick="expandKeyword('${c}', this)">▶</button>
+      <div class="kw-sub" onclick="addKw('${c}')">${c}</div>
+  </div>
+`).join('');
   }
 }
 async function expandKeyword(term, el){
@@ -1192,10 +1216,11 @@ async function expandKeyword(term, el){
 
   const newRow = document.createElement("div");
   newRow.className = "kw-kids";
+  newRow.classList.add("open");
   newRow.style.marginLeft = "20px";
 
   newRow.innerHTML = expanded.slice(0,4).map(k =>
-      `<div class="kw-sub">${k}</div>`
+      `<div class="kw-sub" onclick="event.stopPropagation(); addKw(\`${k}\`)">${k}</div>`
   ).join('');
 
   parent.appendChild(newRow);

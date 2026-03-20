@@ -14,8 +14,10 @@ nlp = spacy.load("en_core_web_sm")
 # ---------------------------
 
 STOP_WORDS = {
-    "using", "based", "approach", "method", "analysis", "study",
-    "system", "model", "technique", "paper", "research", "work"
+"using","based","approach","method","analysis","study",
+"system","model","technique","paper","research","work",
+"improve","improved","improving","background","abstract",
+"novel","framework","algorithm","towards","via","using"
 }
 
 DOMAIN_KEYWORDS = {"alzheimer", "dementia", "cognitive", "neuro", "speech"}
@@ -35,6 +37,8 @@ def clean_keywords(keywords):
             continue
 
         if any(stop in word_lower.split() for stop in STOP_WORDS):
+            continue
+        if " ad " in word_lower:
             continue
 
         cleaned.append(word_lower)
@@ -80,6 +84,12 @@ def filter_phrases(phrases):
         # remove broken long tokens
         if any(len(w) > 20 for w in words):
             continue
+        # remove weird noun fragments
+        if words[-1] in {"brains", "things", "stuff"}:
+            continue
+        # remove short meaningless phrases
+        if len(words) == 2 and words[1] in {"act", "thing", "type"}:
+           continue
 
         cleaned.append(phrase)
 
@@ -202,7 +212,19 @@ def fetch_openalex_titles(query):
 
         if response.status_code == 200:
             data = response.json()
-            return [work["title"] for work in data.get("results", []) if work.get("title")]
+            documents = []
+
+            for work in data.get("results", []):
+             if work.get("title"):
+              documents.append(work["title"])
+
+             if work.get("abstract_inverted_index"):
+              abstract_words = []
+              for word, positions in work["abstract_inverted_index"].items():
+               abstract_words.append(word)
+              documents.append(" ".join(abstract_words))
+
+            return documents
 
     except Exception as e:
         print("OpenAlex failed:", e)
@@ -216,7 +238,8 @@ def fetch_openalex_titles(query):
 
 def expand_term_semantically(term):
 
-    titles = fetch_dynamic_titles(term)
+    query = term + " " + ORIGINAL_QUERY
+    titles = fetch_dynamic_titles(query)
 
     if not titles:
         return []
@@ -224,17 +247,14 @@ def expand_term_semantically(term):
     concept_bank = []
 
     for title in titles:
-    # extract keyphrases from each title
-     extracted = kw_model.extract_keywords(
-        title,
-        keyphrase_ngram_range=(1, 3),
-        stop_words='english',
-        top_n=40
-    )
 
-    for phrase, score in extracted:
-        concept_bank.append(phrase.lower())
+     doc = nlp(title)
 
+     for chunk in doc.noun_chunks:
+        phrase = chunk.text.lower().strip()
+
+        if len(phrase.split()) >= 2:
+            concept_bank.append(phrase)
     concept_bank = list(set(concept_bank))
 
     if not concept_bank:
@@ -248,7 +268,7 @@ def expand_term_semantically(term):
     scored_terms = []
 
     for i, score in enumerate(similarities):
-        if score > 0.50:
+        if score > 0.48:
             scored_terms.append((concept_bank[i], score.item()))
 
     scored_terms.sort(key=lambda x: x[1], reverse=True)
@@ -259,18 +279,32 @@ def expand_term_semantically(term):
     expanded_terms = filter_phrases(expanded_terms)
     expanded_terms = clean_keywords([(t, 1.0) for t in expanded_terms])
     expanded_terms = refine_keywords(expanded_terms)
-    expanded_terms = pos_filter_phrases(expanded_terms)
+    #expanded_terms = pos_filter_phrases(expanded_terms)
     expanded_terms = rank_keywords_by_relevance(expanded_terms, term)
 
     diverse_terms = []
 
     for term in expanded_terms:
-      if not any(term in t or t in term for t in diverse_terms):
+
+     term_embedding = semantic_model.encode(term, convert_to_tensor=True)
+
+     duplicate = False
+
+     for existing in diverse_terms:
+        existing_embedding = semantic_model.encode(existing, convert_to_tensor=True)
+
+        sim = util.cos_sim(term_embedding, existing_embedding).item()
+
+        if sim > 0.75:
+            duplicate = True
+            break
+
+     if not duplicate:
         diverse_terms.append(term)
 
     expanded_terms = diverse_terms
 
-    return expanded_terms[:15]
+    return expanded_terms[:25]
 
 
 # ---------------------------
@@ -308,7 +342,7 @@ def pos_filter_phrases(phrases):
         # ADJ NOUN NOUN
         # NOUN NOUN NOUN
 
-        if all(pos in {"NOUN", "PROPN", "ADJ"} for pos in pos_tags):
+        if "NOUN" in pos_tags and pos_tags[-1] in {"NOUN", "PROPN"}:
             filtered.append(phrase)
 
     return filtered
@@ -324,6 +358,17 @@ CORS(app)
 kw_model = KeyBERT()
 semantic_model = SentenceTransformer('all-MiniLM-L6-v2')
 
+def remove_similar_keywords(keywords):
+
+    filtered = []
+
+    for kw in keywords:
+
+        if not any(kw in other or other in kw for other in filtered):
+            filtered.append(kw)
+
+    return filtered
+
 
 @app.route("/")
 def home():
@@ -332,13 +377,16 @@ def home():
 
 @app.route("/keywords", methods=["POST"])
 def generate_keywords():
+    print("ROUTE HIT")
     data = request.json
     text = data.get("text", "")
+    global ORIGINAL_QUERY
+    ORIGINAL_QUERY = text
 
     # Step 1: Extract from user input
     base_keywords = kw_model.extract_keywords(
         text,
-        keyphrase_ngram_range=(1, 3),
+        keyphrase_ngram_range=(2, 3),
         stop_words='english',
         top_n=40
     )
@@ -351,18 +399,30 @@ def generate_keywords():
     research_keywords = []
 
     for doc in documents:
-        extracted = kw_model.extract_keywords(
-            doc,
-            keyphrase_ngram_range=(1, 3),
-            stop_words='english',
-            top_n=40
-        )
 
-        for phrase, score in extracted:
-            research_keywords.append(phrase.lower())
+     parsed = nlp(doc)
 
+     for chunk in parsed.noun_chunks:
+
+        phrase = chunk.text.lower().strip()
+
+        if 2 <= len(phrase.split()) <= 4:
+            research_keywords.append(phrase)
+    print("Research keywords:", len(research_keywords))
     # Step 3: Merge
     all_keywords = list(set(base_keywords + research_keywords))
+    unique = []
+    seen = set()
+
+    for kw in all_keywords:
+     key = kw.lower().replace("'s","")
+     if key not in seen:
+        unique.append(kw)
+        seen.add(key)
+
+    all_keywords = unique
+    all_keywords = sorted(all_keywords, key=len)
+    
 
     # Step 4: Clean
     all_keywords = filter_phrases(all_keywords)
@@ -381,12 +441,15 @@ def generate_keywords():
     scored.sort(key=lambda x: x[1], reverse=True)
 
 # Tier 1: High precision core
-    core = [kw for kw, score in scored if score > 0.65][:12]
+    #core = [kw for kw, score in scored if score > 0.65][:12]
 
 # Tier 2: Broader but still relevant
-    explore = [kw for kw, score in scored if 0.55 < score <= 0.65][:20]
+    #explore = [kw for kw, score in scored if 0.55 < score <= 0.65][:20]
 
-    final_keywords = core + explore
+    #candidates = list(dict.fromkeys(core + explore))
+    #final_keywords = candidates
+    final_keywords = [kw for kw, score in scored[:30]]
+    
 
 
     clusters_data = cluster_keywords(final_keywords, text)
@@ -403,7 +466,13 @@ def generate_keywords():
      scored = list(zip(final_keywords, similarities.tolist()))
      scored.sort(key=lambda x: x[1], reverse=True)
 
-     related = [k for k, s in scored if k != kw][:5]
+     related = []
+
+    for k, s in scored:
+     if k != kw and s > 0.55:
+        related.append(k)
+
+     related = related[:5]
 
      flat_clusters[kw] = related
 
