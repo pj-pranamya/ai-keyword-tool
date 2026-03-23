@@ -519,7 +519,6 @@ def get_definition():
     term = data.get("term","")
 
     try:
-
         # try whole phrase first
         url = f"https://api.dictionaryapi.dev/api/v2/entries/en/{term}"
         r = requests.get(url)
@@ -528,22 +527,21 @@ def get_definition():
             definition = r.json()[0]["meanings"][0]["definitions"][0]["definition"]
             return jsonify({"definition":definition})
 
-        # fallback: explain first meaningful word
-        words = term.split()
-
-        for w in words:
-            if len(w) > 3:
-                url = f"https://api.dictionaryapi.dev/api/v2/entries/en/{w}"
-                r = requests.get(url)
-
-                if r.status_code == 200:
-                    definition = r.json()[0]["meanings"][0]["definitions"][0]["definition"]
-                    return jsonify({"definition":definition})
-
     except:
         pass
 
-    return jsonify({"definition":"Research concept related to: " + term})
+    # fallback → FULL phrase (important)
+    # simple smart explanation based on phrase structure
+    words = term.split()
+
+    if len(words) == 2:
+     definition = f"A concept describing {words[1]} related to {words[0]}."
+    elif len(words) >= 3:
+     definition = f"A research term referring to {' '.join(words[-2:])} in the context of {words[0]}."
+    else:
+     definition = f"A research concept related to {term}."
+
+    return jsonify({"definition": definition})
 
 if __name__ == "__main__":
     app.run(debug=True)

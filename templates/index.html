@@ -446,11 +446,7 @@
       font-size: 11px
     }
 
-    .chip-wrap:hover .tt-box,
-    .kw-chip-wrap:hover .tt-box {
-      opacity: 1;
-      transform: translateX(-50%) translateY(0)
-    }
+    
 
     .chip-wrap,
     .kw-chip-wrap {
@@ -740,6 +736,7 @@
 
     .kw-kids {
   display: flex;
+  flex-direction: column;
   flex-wrap: wrap;
   gap: 5px;
   padding: 6px 8px 6px 20px;
@@ -1037,6 +1034,41 @@
 
     function addOrGroup(terms = []) { orG.push([...terms]); renderGrps(); updQ() }
 
+    function attachDefinitionHover(scope=document){
+
+  scope.querySelectorAll('.kw-chip-wrap').forEach(el => {
+
+    if(el.dataset.bound) return;
+
+    const keyword = el.innerText.trim().split('\n')[0];
+    const tooltip = el.querySelector('.tt-box');
+
+    el.addEventListener('mouseenter', () => {
+
+        // 🔴 hide all other tooltips
+        document.querySelectorAll('.tt-box').forEach(t => {
+            t.style.opacity = 0;
+        });
+
+        // show current
+        if(tooltip){
+            tooltip.style.opacity = 1;
+            tooltip.style.transform = 'translateX(-50%) translateY(0)';
+        }
+
+        loadDefinition(el, keyword);
+    });
+
+    el.addEventListener('mouseleave', () => {
+        if(tooltip){
+            tooltip.style.opacity = 0;
+        }
+    });
+
+    el.dataset.bound = "true";
+  });
+}
+
     function renderGrps() {
       const c = document.getElementById('orGrps'); c.innerHTML = '';
       orG.forEach((terms, i) => {
@@ -1117,29 +1149,10 @@
       } finally { btn.disabled = false; btn.innerHTML = 'Generate Keywords' }
     }
 
-    async function expandKeyword(term){
-
-  const res = await fetch('/expand-term',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({term})
-  });
-
-  const data = await res.json();
-
-  const expanded = data.expanded || [];
-
-  const container = document.querySelector(`[data-kw="${term}"]`);
-
-  if(!container) return;
-
-  container.innerHTML = expanded.map(k =>
-      `<div class="kw-chip">${k}</div>`
-  ).join('');
-
-}
+  
 
     function renderKwTree(kws, cl) {
+      
       const tree = document.getElementById('kwTree');
       if (!kws.length) { tree.innerHTML = '<div class="empty"><div class="empty-ic">🤷</div>No keywords found.</div>'; return }
       
@@ -1150,19 +1163,8 @@
         const ch = kids.slice(0, 6).map(c => `<div class="kw-chip-wrap"><div class="kw-sub" onclick="addKw('${eA(c)}')">${eH(c)}</div><div class="tt-box"><span class="tt-kw">${eH(c)}</span><span class="tt-def">Loading definition…</span></div></div>`).join('');
         return `<div class="kw-tree-item"><div class="kw-row"><button class="kw-exp" id="eb${i}" onclick="togKw('${hk}', ${i})" title="Expand">▶</button><div class="kw-chip-wrap"><div class="kw-chip" onclick="addKw('${hk}')">${eH(kw)}<span class="sc">${pct}%</span></div><div class="tt-box"><span class="tt-kw">${eH(kw)}</span><span class="tt-def">Loading definition…</span></div></div></div><div class="kw-kids" id="kk${i}"></div></div>`;
       }).join('');
-      setTimeout(() => {
-
-  document.querySelectorAll('.kw-chip-wrap').forEach(el => {
-
-      const keyword = el.innerText.trim().split('\n')[0];
-
-      el.addEventListener('mouseenter', () => {
-          loadDefinition(el, keyword);
-      });
-
-  });
-
-}, 100);
+      attachDefinitionHover();
+     
     }
 
     async function togKw(term,i) {
@@ -1192,17 +1194,44 @@
 
       kids.innerHTML = expanded.map(c => `
   <div class="kw-chip-wrap">
-      <button class="kw-exp" onclick="expandKeyword('${c}', this)">▶</button>
+       <div class="kw-tree-item">
+  <div class="kw-row">
+    <button class="kw-exp" onclick="expandKeyword('${c}', this)">▶</button>
+    <div class="kw-chip-wrap">
       <div class="kw-sub" onclick="addKw('${c}')">${c}</div>
+      <div class="tt-box">
+        <span class="tt-kw">${c}</span>
+        <span class="tt-def">Loading definition…</span>
+      </div>
+    </div>
+  </div>
+  <div class="kw-kids"></div>
+</div>
   </div>
 `).join('');
+attachDefinitionHover(kids);
   }
 }
 async function expandKeyword(term, el){
 
-  const parent = el.parentElement;
+  const parentItem = el.closest('.kw-tree-item');
 
-  if(parent.dataset.expanded) return;
+  let kidsContainer = parentItem.querySelector('.kw-kids');
+
+  if (!kidsContainer) {
+    kidsContainer = document.createElement("div");
+    kidsContainer.className = "kw-kids";
+    parentItem.appendChild(kidsContainer);
+  }
+
+  const isOpen = kidsContainer.classList.toggle('open');
+  el.classList.toggle('open', isOpen);
+
+  if (!isOpen) return;
+
+  if (kidsContainer.dataset.loaded) return;
+
+  kidsContainer.innerHTML = `<div style="padding:6px;font-size:12px;color:#777">Loading...</div>`;
 
   const res = await fetch('/expand-term',{
       method:'POST',
@@ -1211,20 +1240,26 @@ async function expandKeyword(term, el){
   });
 
   const data = await res.json();
-
   const expanded = data.expanded || [];
 
-  const newRow = document.createElement("div");
-  newRow.className = "kw-kids";
-  newRow.classList.add("open");
-  newRow.style.marginLeft = "20px";
+  kidsContainer.innerHTML = expanded.slice(0,5).map(k => `
+    <div class="kw-tree-item">
+      <div class="kw-row">
+        <button class="kw-exp" onclick="expandKeyword('${k}', this)">▶</button>
+        <div class="kw-chip-wrap">
+          <div class="kw-sub" onclick="addKw('${k}')">${k}</div>
+          <div class="tt-box">
+            <span class="tt-kw">${k}</span>
+            <span class="tt-def">Loading definition…</span>
+          </div>
+        </div>
+      </div>
+      <div class="kw-kids"></div>
+    </div>
+  `).join('');
+  attachDefinitionHover(kidsContainer);
 
-  newRow.innerHTML = expanded.slice(0,4).map(k =>
-      `<div class="kw-sub" onclick="event.stopPropagation(); addKw(\`${k}\`)">${k}</div>`
-  ).join('');
-
-  parent.appendChild(newRow);
-  parent.dataset.expanded = true;
+  kidsContainer.dataset.loaded = true;
 }
 
     function addKw(t) { let idx = orG.findIndex(g => !g.includes(t)); if (idx === -1) { addOrGroup([t]); return } orG[idx].push(t); renderGrps(); updQ(); toast(`Added "${t}" to OR Group ${idx + 1}`) }
